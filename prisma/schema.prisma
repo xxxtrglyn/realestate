@@ -1,0 +1,85 @@
+// schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  USER
+}
+
+model House {
+  id       String  @id @default(cuid())
+  price    Float   @default(0)
+  square   Int     @default(0)
+  location String?
+  bedroom  Int     @default(0)
+  bathroom Int     @default(0)
+  image    String?
+
+  owner   User?   @relation(fields: [ownerId], references: [id])
+  ownerId String?
+
+  orders Order[]
+}
+
+model Order {
+  client    User?    @relation(fields: [clientId], references: [id])
+  clientId  String
+  house     House?   @relation(fields: [houseId], references: [id])
+  houseId   String
+  create_at DateTime @default(now())
+
+  @@id([clientId, houseId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  createdAt     DateTime  @default(now()) @map(name: "created_at")
+  updatedAt     DateTime  @updatedAt @map(name: "updated_at")
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(USER)
+  house         House[]
+  orders        Order[]
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map(name: "users")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String  @map("user_id")
+  type               String
+  provider           String
+  providerAccountId  String  @map("provider_account_id")
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  oauth_token_secret String?
+  oauth_token        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
